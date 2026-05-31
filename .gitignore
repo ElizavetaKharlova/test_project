@@ -5,6 +5,11 @@
 *.html
 lib/
 
+# MLflow tracking store
+mlruns/
+mlartifacts/
+mlflow.db
+
 # Python
 __pycache__/
 *.py[cod]

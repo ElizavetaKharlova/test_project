@@ -107,6 +107,9 @@ def eval_cmd(
     ),
     seed: int = typer.Option(42, "--seed", help="Seed for user sampling and SVD."),
     alpha: float = typer.Option(0.85, "--alpha", help="PageRank damping factor."),
+    mlflow: bool = typer.Option(
+        False, "--mlflow", help="Log results to MLflow (needs the 'tracking' extra)."
+    ),
 ) -> None:
     """Compare Graph PPR against baselines on a temporal split."""
     ratings = load_ratings()
@@ -127,6 +130,21 @@ def eval_cmd(
     )
     typer.echo(table.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
 
+    if mlflow:
+        from graphrec.eval import tracking
+
+        uri = tracking.log_dataframe(
+            "graphrec-eval",
+            table,
+            {"k": k, "test_frac": test_frac, "n_users": users, "seed": seed,
+             "alpha": alpha},
+            label_col="Method",
+        )
+        typer.echo(
+            f"\nLogged {len(table)} runs to MLflow. "
+            f"View: uv run mlflow ui --backend-store-uri {uri}"
+        )
+
 
 @app.command("ablate")
 def ablate_cmd(
@@ -138,6 +156,9 @@ def ablate_cmd(
     users: int = typer.Option(100, "--users", help="Number of sampled eval users."),
     seed: int = typer.Option(42, "--seed", help="Seed for user sampling and SVD."),
     alpha: float = typer.Option(0.85, "--alpha", help="PageRank damping factor."),
+    mlflow: bool = typer.Option(
+        False, "--mlflow", help="Log results to MLflow (needs the 'tracking' extra)."
+    ),
 ) -> None:
     """Sweep the recency lever and show its effect on the feature-graph metrics."""
     recency_weights = [float(w) for w in weights.split(",")]
@@ -156,6 +177,22 @@ def ablate_cmd(
         alpha=alpha,
     )
     typer.echo(table.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+
+    if mlflow:
+        from graphrec.eval import tracking
+
+        uri = tracking.log_dataframe(
+            "graphrec-ablation",
+            table,
+            {"k": k, "test_frac": test_frac, "n_users": users, "seed": seed,
+             "alpha": alpha},
+            label_col="recency_weight",
+            param_cols=("recency_weight",),
+        )
+        typer.echo(
+            f"\nLogged {len(table)} runs to MLflow. "
+            f"View: uv run mlflow ui --backend-store-uri {uri}"
+        )
 
 
 if __name__ == "__main__":

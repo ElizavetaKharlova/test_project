@@ -172,6 +172,20 @@ tests/         # 19 tests, network-free
 PRD.md         # product requirements
 ```
 
+## Experiment tracking (optional)
+
+Eval and ablation results can be logged to **MLflow** — one run per method (or per
+`recency_weight`), with params and metrics — so experiments are recorded and
+comparable instead of scrolling past in the terminal. It's an optional extra and a
+local file backend (no server):
+
+```bash
+uv sync --extra tracking          # installs mlflow
+uv run graphrec eval --mlflow     # one run per method
+uv run graphrec ablate --mlflow   # one run per recency_weight
+uv run mlflow ui --backend-store-uri sqlite:///mlflow.db   # browse the runs
+```
+
 ## Development
 
 ```bash

@@ -17,6 +17,9 @@ dependencies = [
 [project.scripts]
 graphrec = "graphrec.cli:app"
 
+[project.optional-dependencies]
+tracking = ["mlflow>=2.9"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",

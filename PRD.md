@@ -171,3 +171,34 @@ grows, without changing the retrieval algorithm.
 | Temporal-split sparsity for cold users | popularity fallback |
 | Visualization at scale | always render a local subgraph |
 | MF baseline install friction on macOS | TruncatedSVD by default; ALS noted as prod choice |
+
+## 18. Quality roadmap (prioritized next steps)
+
+Concrete, measurable improvements that target the gaps the evaluation surfaced
+(accuracy at parity with baselines; coverage stuck ~0.05). Ordered by ROI.
+
+1. **Degree discounting (RP3β-style).** Divide PPR scores by `degree(movie)^β` to
+   penalize popular hubs. Directly attacks the low-coverage / popularity-bias
+   problem; ~minutes of work and runs through the existing eval harness.
+2. **Denoise the graph.** Build `rated` edges only for ratings ≥ 4 ("liked") and
+   drop over-generic mega-hubs (e.g. `Drama`). Cheap accuracy and less diffusion.
+3. **Validation-set hyperparameter search.** Carve a validation slice from the
+   train period and search α, `FeatureWeights`, `recency_weight`, and β against it,
+   so the weighting claims are empirical rather than hand-set.
+4. **Production scaling (discuss, not necessarily build).** Two-stage
+   candidate-generation → learned ranker (PPR → LightGBM / LambdaMART), and
+   LightGCN as the learned-propagation upgrade — the "how I'd push quality at
+   scale" answer.
+
+## 19. Observability — experiment tracking (MLflow)
+
+Eval and ablation runs are logged to **MLflow** so results are recorded,
+comparable, and reproducible rather than living in terminal scrollback.
+
+- **Optional extra** (`uv sync --extra tracking`); lazy-imported so the core
+  install stays light. Opt in per run with `--mlflow`.
+- **Local file backend** (`./mlruns`), no server; browse with `uv run mlflow ui`.
+- **One run per config:** each method (eval) or `recency_weight` (ablation) is a
+  run, with params (k, test_frac, n_users, seed, alpha) and metrics
+  (recall_at_10, ndcg_at_10, coverage, avg_year) — so MLflow's compare/plot views
+  work across methods and sweeps.

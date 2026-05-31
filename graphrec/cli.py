@@ -14,6 +14,8 @@ from graphrec.eval.harness import evaluate, recency_ablation
 from graphrec.graph.build import build_graph
 from graphrec.graph.cache import get_graph
 from graphrec.recommend import ppr
+from graphrec.recommend.explain import explain as explain_recommendation
+from graphrec.recommend.explain import format_explanation
 
 app = typer.Typer(help="Graph-based movie recommender.", no_args_is_help=True)
 
@@ -30,6 +32,9 @@ def recommend(
     alpha: float = typer.Option(0.85, help="PageRank damping factor."),
     recency_weight: float = typer.Option(
         0.0, "--recency-weight", help="Tilt toward newer films (0 = off)."
+    ),
+    explain: bool = typer.Option(
+        True, "--explain/--no-explain", help="Show why each item was recommended."
     ),
     rebuild: bool = typer.Option(
         False, "--rebuild", help="Force graph reconstruction, ignoring the cache."
@@ -54,6 +59,11 @@ def recommend(
     typer.echo(f"Top {k} recommendations for user {user}:\n")
     for rank, rec in enumerate(recs, start=1):
         typer.echo(f"{rank:2}. {rec.title}  (score={rec.score:.5f})")
+        if explain:
+            reason = explain_recommendation(graph, user, rec.movie_id)
+            if reason is not None:
+                text = format_explanation(reason, titles, rec.title)
+                typer.echo(f"      ↳ {text}")
 
 
 @app.command("eval")

@@ -33,6 +33,7 @@ class Explanation:
     liked_movie_id: int
     bridge_kind: str  # "genre" | "year_bucket" | "user"
     bridge_label: str  # e.g. "Crime", "1990s"; empty for a user bridge
+    bridge_node: str  # graph node id of the bridge (for visualization)
     specificity: float  # 1 / degree(bridge); higher = rarer, more informative
 
 
@@ -69,6 +70,7 @@ def explain(graph: nx.Graph, user_id: int, movie_id: int) -> Explanation | None:
                     liked_movie_id=int(movie.split(":", 1)[1]),
                     bridge_kind=kind,
                     bridge_label=label,
+                    bridge_node=bridge,
                     specificity=specificity,
                 )
     return best

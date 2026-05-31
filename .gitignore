@@ -1,6 +1,10 @@
 # MovieLens download cache
 .data/
 
+# Generated visualizations
+*.html
+lib/
+
 # Python
 __pycache__/
 *.py[cod]

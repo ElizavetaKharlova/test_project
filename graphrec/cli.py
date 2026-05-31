@@ -16,6 +16,7 @@ from graphrec.graph.cache import get_graph
 from graphrec.recommend import ppr
 from graphrec.recommend.explain import explain as explain_recommendation
 from graphrec.recommend.explain import format_explanation
+from graphrec.viz.render import render_recommendations
 
 app = typer.Typer(help="Graph-based movie recommender.", no_args_is_help=True)
 
@@ -23,6 +24,19 @@ app = typer.Typer(help="Graph-based movie recommender.", no_args_is_help=True)
 @app.callback()
 def main() -> None:
     """Graph-based movie recommender."""
+
+
+def _graph_for(recency_weight: float, rebuild: bool):
+    """Return the full graph: cached default, or freshly built when steered."""
+    if recency_weight:
+        # A steered graph differs from the cached default, so build it fresh.
+        return build_graph(
+            load_ratings(),
+            load_movie_features(),
+            load_user_features(),
+            recency_weight=recency_weight,
+        )
+    return get_graph(rebuild=rebuild)
 
 
 @app.command()
@@ -44,16 +58,7 @@ def recommend(
     movies = load_movies()
     titles = dict(zip(movies["movie_id"], movies["title"], strict=False))
 
-    if recency_weight:
-        # A steered graph differs from the cached default, so build it fresh.
-        graph = build_graph(
-            load_ratings(),
-            load_movie_features(),
-            load_user_features(),
-            recency_weight=recency_weight,
-        )
-    else:
-        graph = get_graph(rebuild=rebuild)
+    graph = _graph_for(recency_weight, rebuild)
     recs = ppr.recommend(graph, user_id=user, k=k, alpha=alpha, titles=titles)
 
     typer.echo(f"Top {k} recommendations for user {user}:\n")
@@ -64,6 +69,31 @@ def recommend(
             if reason is not None:
                 text = format_explanation(reason, titles, rec.title)
                 typer.echo(f"      ↳ {text}")
+
+
+@app.command()
+def visualize(
+    user: int = typer.Option(..., "--user", "-u", help="MovieLens user id."),
+    k: int = typer.Option(10, "--k", "-k", help="Number of recommendations."),
+    output: str = typer.Option(
+        "recommendations.html", "--output", "-o", help="Output HTML path."
+    ),
+    alpha: float = typer.Option(0.85, help="PageRank damping factor."),
+    recency_weight: float = typer.Option(
+        0.0, "--recency-weight", help="Tilt toward newer films (0 = off)."
+    ),
+    rebuild: bool = typer.Option(
+        False, "--rebuild", help="Force graph reconstruction, ignoring the cache."
+    ),
+) -> None:
+    """Write an interactive HTML graph of a user's recommendation paths."""
+    movies = load_movies()
+    titles = dict(zip(movies["movie_id"], movies["title"], strict=False))
+
+    graph = _graph_for(recency_weight, rebuild)
+    recs = ppr.recommend(graph, user_id=user, k=k, alpha=alpha, titles=titles)
+    path = render_recommendations(graph, user, recs, titles, output)
+    typer.echo(f"Wrote visualization for user {user} ({len(recs)} recs) to {path}")
 
 
 @app.command("eval")

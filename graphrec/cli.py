@@ -10,7 +10,8 @@ from graphrec.data.loader import (
     load_ratings,
     load_user_features,
 )
-from graphrec.eval.harness import evaluate
+from graphrec.eval.harness import evaluate, recency_ablation
+from graphrec.graph.build import build_graph
 from graphrec.graph.cache import get_graph
 from graphrec.recommend import ppr
 
@@ -27,6 +28,9 @@ def recommend(
     user: int = typer.Option(..., "--user", "-u", help="MovieLens user id."),
     k: int = typer.Option(10, "--k", "-k", help="Number of recommendations."),
     alpha: float = typer.Option(0.85, help="PageRank damping factor."),
+    recency_weight: float = typer.Option(
+        0.0, "--recency-weight", help="Tilt toward newer films (0 = off)."
+    ),
     rebuild: bool = typer.Option(
         False, "--rebuild", help="Force graph reconstruction, ignoring the cache."
     ),
@@ -35,7 +39,16 @@ def recommend(
     movies = load_movies()
     titles = dict(zip(movies["movie_id"], movies["title"], strict=False))
 
-    graph = get_graph(rebuild=rebuild)
+    if recency_weight:
+        # A steered graph differs from the cached default, so build it fresh.
+        graph = build_graph(
+            load_ratings(),
+            load_movie_features(),
+            load_user_features(),
+            recency_weight=recency_weight,
+        )
+    else:
+        graph = get_graph(rebuild=rebuild)
     recs = ppr.recommend(graph, user_id=user, k=k, alpha=alpha, titles=titles)
 
     typer.echo(f"Top {k} recommendations for user {user}:\n")
@@ -66,6 +79,36 @@ def eval_cmd(
         ratings,
         movie_features=load_movie_features(),
         user_features=load_user_features(),
+        k=k,
+        test_frac=test_frac,
+        n_users=users,
+        seed=seed,
+        alpha=alpha,
+    )
+    typer.echo(table.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
+
+
+@app.command("ablate")
+def ablate_cmd(
+    weights: str = typer.Option(
+        "0,0.5,1,2", "--weights", help="Comma-separated recency weights to sweep."
+    ),
+    k: int = typer.Option(10, "--k", help="Cutoff for Recall@K / NDCG@K."),
+    test_frac: float = typer.Option(0.2, "--test-frac", help="Held-out fraction."),
+    users: int = typer.Option(100, "--users", help="Number of sampled eval users."),
+    seed: int = typer.Option(42, "--seed", help="Seed for user sampling and SVD."),
+    alpha: float = typer.Option(0.85, "--alpha", help="PageRank damping factor."),
+) -> None:
+    """Sweep the recency lever and show its effect on the feature-graph metrics."""
+    recency_weights = [float(w) for w in weights.split(",")]
+    typer.echo(
+        f"Recency ablation on {users} users (sweep={recency_weights}, k={k})...\n"
+    )
+    table = recency_ablation(
+        load_ratings(),
+        load_movie_features(),
+        load_user_features(),
+        recency_weights=recency_weights,
         k=k,
         test_frac=test_frac,
         n_users=users,

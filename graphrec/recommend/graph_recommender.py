@@ -26,18 +26,26 @@ class GraphPPRRecommender:
         alpha: float = 0.85,
         movie_features: pd.DataFrame | None = None,
         user_features: pd.DataFrame | None = None,
+        recency_weight: float = 0.0,
     ) -> None:
         self.alpha = alpha
         self.movie_features = movie_features
         self.user_features = user_features
+        self.recency_weight = recency_weight
         self._with_features = (
             movie_features is not None or user_features is not None
         )
-        self.name = "Graph PPR (+features)" if self._with_features else "Graph PPR"
+        base = "Graph PPR (+features)" if self._with_features else "Graph PPR"
+        self.name = f"{base} r={recency_weight:g}" if recency_weight else base
 
     def fit(self, train: pd.DataFrame) -> None:
         if self._with_features:
-            self.graph = build_graph(train, self.movie_features, self.user_features)
+            self.graph = build_graph(
+                train,
+                self.movie_features,
+                self.user_features,
+                recency_weight=self.recency_weight,
+            )
         else:
             self.graph = build_bipartite_graph(train)
 

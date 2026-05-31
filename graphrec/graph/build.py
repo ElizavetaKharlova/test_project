@@ -101,11 +101,15 @@ def build_graph(
     movie_features: pd.DataFrame | None = None,
     user_features: pd.DataFrame | None = None,
     weights: FeatureWeights | None = None,
+    recency_weight: float = 0.0,
 ) -> nx.Graph:
     """Build the full heterogeneous graph: bipartite core plus feature nodes.
 
     Feature edges are additive — the bipartite graph is a strict subset — so the
     PPR recommender works unchanged; the feature nodes only add new paths.
+
+    ``recency_weight`` (>=0) tilts the walk toward newer films by scaling each
+    movie's incident-edge weights by its release recency. 0 disables it.
     """
     weights = weights or FeatureWeights()
     graph = build_bipartite_graph(ratings)
@@ -113,6 +117,8 @@ def build_graph(
         _add_movie_feature_nodes(graph, movie_features, weights)
     if user_features is not None:
         _add_user_feature_nodes(graph, user_features, weights)
+    if recency_weight and movie_features is not None:
+        _apply_recency_weights(graph, movie_features, recency_weight)
     return graph
 
 
@@ -148,3 +154,29 @@ def _add_user_feature_nodes(
         age = age_bucket_node(age_bucket_label(row.age))
         graph.add_node(age, kind="age_bucket")
         graph.add_edge(user, age, weight=weights.age, relation="in_age_bucket")
+
+
+def _apply_recency_weights(
+    graph: nx.Graph, movie_features: pd.DataFrame, recency_weight: float
+) -> None:
+    """Scale each movie's incident edges by 1 + recency_weight * normalized_year.
+
+    The oldest film keeps its weights (factor 1.0); the newest is boosted most.
+    Every edge touches exactly one movie node, so each is scaled exactly once.
+    """
+    years = movie_features["year"].dropna()
+    if years.empty:
+        return
+    min_year, span = float(years.min()), float(years.max()) - float(years.min())
+    if span <= 0:
+        return
+
+    for row in movie_features.itertuples(index=False):
+        if pd.isna(row.year):
+            continue
+        movie = movie_node(row.movie_id)
+        if movie not in graph:
+            continue
+        factor = 1.0 + recency_weight * (float(row.year) - min_year) / span
+        for _, _, data in graph.edges(movie, data=True):
+            data["weight"] *= factor

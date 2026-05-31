@@ -1,0 +1,17 @@
+# MovieLens download cache
+.data/
+
+# Generated visualizations
+*.html
+lib/
+
+# MLflow tracking store
+mlruns/
+mlartifacts/
+mlflow.db
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

@@ -1,0 +1,53 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "GraphRec: recommend (user 1)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "graphrec",
+      "args": ["recommend", "--user", "1", "--k", "10"],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "python": "${workspaceFolder}/.venv/bin/python"
+    },
+    {
+      "name": "GraphRec: recommend (prompt for user)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "graphrec",
+      "args": ["recommend", "--user", "${input:userId}", "--k", "10"],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "python": "${workspaceFolder}/.venv/bin/python"
+    },
+    {
+      "name": "Pytest: current file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-v"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${workspaceFolder}/.venv/bin/python"
+    },
+    {
+      "name": "Pytest: all tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v"],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "python": "${workspaceFolder}/.venv/bin/python"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "userId",
+      "type": "promptString",
+      "description": "MovieLens user id to recommend for",
+      "default": "1"
+    }
+  ]
+}

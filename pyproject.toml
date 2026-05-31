@@ -1,0 +1,34 @@
+[project]
+name = "graphrec"
+version = "0.1.0"
+description = "Heterogeneous graph-based movie recommender using Personalized PageRank."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "networkx>=3.1",
+    "numpy>=1.24.4",
+    "pandas>=2.0.3",
+    "pyvis>=0.3.2",
+    "scikit-learn>=1.3.2",
+    "scipy>=1.10.1",
+    "typer>=0.20.1",
+]
+
+[project.scripts]
+graphrec = "graphrec.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.15.15",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["graphrec"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

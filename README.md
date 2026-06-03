@@ -132,7 +132,7 @@ This repo is the offline/demo slice. A production deployment would look like:
   graph for the evolution roadmap below. Neo4j GDS provides personalized PageRank
   in-database. (If the workload were purely read-mostly with no live traversal,
   precomputed recommendations in a KV store like Redis would be simpler — a graph
-  DB is a justified choice, not an automatic one.)
+  DB is a justified choice.)
 - **Candidate generation → ranking.** PPR is candidate generation; a learned ranker
   (gradient-boosted trees / a neural ranker over richer features) would re-rank the
   top candidates. The recency lever becomes one ranking feature among many.
@@ -140,7 +140,7 @@ This repo is the offline/demo slice. A production deployment would look like:
   store; or hold the graph in a long-lived service for on-demand PPR. The demo's
   versioned graph cache mirrors the offline-build / online-serve split.
 - **Cold start.** Popularity fallback today; in production, content/graph-based
-  fallback via feature nodes (genre/era) for new users and items.
+  fallback via feature nodes (user features/iitem features) for new users and items.
 - **Matrix factorization.** TruncatedSVD here is the dependency-light stand-in;
   `implicit` ALS (implicit-feedback) is the production choice.
 - **Evaluation in production.** Offline metrics (Recall/NDCG/coverage) for
